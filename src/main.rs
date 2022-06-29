@@ -1,16 +1,19 @@
 use port_scanner::*;
 use core::panic;
 use std::env;
+use regex::Regex;
 
 fn main() {
     let (option,value) = match parse_arguments(env::args().collect()) {
         Ok(res) => {res},
         Err(err) => {panic!("{}", err)},
     };
+
     
     if option == "all" {scan_all_ports()}
-    if option == "p" {scan_one_port(value)}
-
+    else if option == "p" && !value.is_empty() {scan_one_port(&value)}
+    else if option == "a" && !value.is_empty() {scan_adress(&value)}
+    else {println!("invalid option or value inserted")}
 }
 
 
@@ -26,13 +29,25 @@ fn parse_arguments(args: Vec<String>) -> Result<(String,String), String> {
     let value = if args.len() == 3 {args[2].clone()} else {String::from("")};
     let option = args[1].clone();
 
-    if option != "all" && option != "p" {panic!("invalid option")}
+    if option != "all" && option != "p" && option != "a" {panic!("invalid option")}
 
 
     Ok((option,value))
 }
 
-fn scan_one_port(port: String) {
+fn scan_adress (addr: &String) {
+    let regex = Regex::new(r"^\d{1,3}\.\d{1,3}.\d{1,3}.\d{1,3}:\d{1,5}$").unwrap();
+    if !regex.is_match(&addr) {
+        panic!("{} is not valid ip adress", &addr)
+    }
+
+    let result = scan_port_addr(&addr);
+    let result_str = if result {"opened"} else {"closed"};
+
+    println!("IP {} has port {}", &addr, result_str);
+}
+
+fn scan_one_port(port: &String) {
     println!("scanning one port");
     let port = port.parse::<u16>().unwrap_or_else(|_| panic!("wrong parameter value, expecting number or number is too big (max 65.535,min: 1)"));
 
